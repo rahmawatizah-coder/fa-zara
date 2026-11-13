@@ -81,6 +81,7 @@ $('#recent').querySelectorAll('button[data-edit]').forEach(b => b.addEventListen
     $('#recent').querySelectorAll('button[data-del]').forEach(b => b.addEventListener('click', async () => {
       const row = rows.find(r => String(r._id) === b.dataset.del);
       if (!row || !canDelete()) return;
+      if (!canPermDelete()) { adminDeleteNotice(); return; }   // Admin: hanya peringatan, harus konfirmasi Engineering
       if (!(await confirmDelete(mod, [row]))) return;
       b.disabled = true;
       const { deleted, error } = await deleteRows(mod, [row._id]);
