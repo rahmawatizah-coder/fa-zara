@@ -45,13 +45,13 @@ const MODULES = {
     ],
     charts: [
       { t: 'Defect by Model',   k: 'model',   sum: 'qty', pie: true },
-      { t: 'Defect by Problem', k: 'problem', sum: 'qty', pie: true },
-      { t: 'Defect by Family',  k: 'family',  sum: 'qty', pie: true }
+      { t: 'Defect by Problem', k: 'problem', sum: 'qty' },
+      { t: 'Defect by Family',  k: 'family',  sum: 'qty' }
     ],
     fields: [
       { k: 'date',    label: 'Date Occurred',       type: 'date',   req: 1, def: 'today' },
       { k: 'model',   label: 'Model Harness',       type: 'select', req: 1, opts: ['VF5','VF6','VF7','VF8','VF9','Minivan','VF5 NP','VF6 RHD','VF7 RHD','VF8 NP','VF9 NP','VF WILD','BRP'] },
-      { k: 'family',  label: 'Family',              type: 'select', req: 1, opts: ['Engine','Body','Small','IP'] },
+      { k: 'family',  label: 'Family',              type: 'select', req: 1, other: 'Other', opts: ['Engine','Body','Small','IP','Other'] },
       { k: 'pn',      label: 'P/N Harness',         type: 'text',   req: 1 },
       { k: 'shift',   label: 'Shift',               type: 'select', req: 1, opts: ['Shift 1','Shift 2'] },
       { k: 'problem', label: 'Problem',             type: 'select', req: 1, opts: ['Cross Wire','Damage','Orientation','Unseated','Missing','Others','Dimension'] },
@@ -108,7 +108,7 @@ const MODULES = {
       { k: 'date',     label: 'Issue Date',          type: 'date',   req: 1, def: 'today' },
       { k: 'level',    label: 'SCAR Level',          type: 'select', req: 1, opts: ['A','B','C','I'] },
       { k: 'model',    label: 'Model',               type: 'select', req: 1, opts: ['VF5','VF6','VF7','VF8','VF9','Minivan','VF5 NP','VF6 RHD','VF7 RHD','VF8 NP','VF9 NP','VF WILD','BRP'] },
-      { k: 'family',   label: 'Family',              type: 'select', req: 1, opts: ['Engine','Body','Small','IP'] },
+      { k: 'family',   label: 'Family',              type: 'select', req: 1, other: 'Other', opts: ['Engine','Body','Small','IP','Other'] },
       { k: 'proddate', label: 'Production Date',     type: 'date' },
       { k: 'harness',  label: 'Harness',             type: 'text' },
       { k: 'pn',       label: 'P/N',                 type: 'text',   req: 1 },
@@ -152,17 +152,18 @@ const MODULES = {
       { v: Math.max(0, sum(r, 'qty') - sum(r, 'qtyrework')), l: 'Sisa Qty' }
     ],
     pie: { t: 'Red Tag by Project (Qty)', k: 'project', sum: 'qty' },   // grafik lingkaran (menggantikan batang & komposisi by project)
-charts: [
-  { t: 'Red Tag by Family (Qty)',  k: 'family',  sum: 'qty' },
-  { t: 'Red Tag by Reason',        k: 'reason' }
-],
+    charts: [
+      { t: 'Red Tag by Family (Qty)',  k: 'family',  sum: 'qty' },
+      { t: 'Red Tag by Reason',        k: 'reason' }
+    ],
     fields: [
       { k: 'no',        label: 'Red Tag No.',        type: 'text',   req: 1, def: 'auto' },
       { k: 'date',      label: 'Date',               type: 'date',   req: 1, def: 'today' },
-      { k: 'Versigentpn',   label: 'Versigent Part Number',  type: 'text' },
-      { k: 'pn',        label: 'Part Number',        type: 'text',   req: 1 },
-      { k: 'project',   label: 'Project', type: 'select', req: 1, other: 'Other', opts: ['VF5','VF5NP','VF6','VF6 RHD','VF7','VF7 RHD','VF8','VF8NP','VF9','VFWild','VF9NP','MINIVAN','Other'] },
-      { k: 'family',    label: 'Family', type: 'select', req: 1, other: 'Other', opts: ['Engine','Body','Small','IP','Other'] },
+      { k: 'aptivpn',   label: 'Versigent Part Number', type: 'text' },
+      { k: 'pn',        label: 'Part Number (EEP)',  type: 'text',   req: 1 },
+      { k: 'harness',   label: 'Harness Name',       type: 'text' },
+      { k: 'project',   label: 'Project',            type: 'select', req: 1, other: 'Other', opts: ['VF5','VF5NP','VF6','VF6 RHD','VF7','VF7 RHD','VF8','VF8NP','VF9','VFWild','VFe34','MINI VAN','MHU','MMC','Other'] },
+      { k: 'family',    label: 'Family',             type: 'select', req: 1, other: 'Other', opts: ['1. Body','2. IP','3. Front end','4. Under body','5. Tailgate RH','6. Tailgate LH','7. CHMSL','8. Bumper FR','9. Bumper RR','10. Door FR RH','11. Door FR LH','12. Door RR RH','13. Door RR LH','14. Door BK','15. Console','16. Roof','17. SRR Pigtail','18. Impact Sensor','19. RR USB','20. Water Pump','21. HV Battery','22. HV Heater','23. HV Comp','24. Small Battery','MHU Pigtail','SML','HV','Engine','Small','Baterai PDU','Other'] },
       { k: 'qty',       label: 'Qty (Pcs)',          type: 'number', req: 1, def: 1 },
       { k: 'reason',    label: 'Reason',             type: 'text',   req: 1 },
       { k: 'remarks',   label: 'Remarks',            type: 'text' },
@@ -172,11 +173,11 @@ charts: [
     xlTitle: 'DAILY RED TAG CHECK',
     xlSheet: 'RED TAG LIST',
     xl: [
-      ['_no','No'], ['Versigentpn','Versigent Part Number'], ['pn','Part Number'], ['project','Project'], ['family','Family'],
+      ['_no','No'], ['aptivpn','Versigent Part Number'], ['pn','Part Number'], ['harness','Harness Name'], ['project','Project'], ['family','Family'],
       ['qty','Qty (Pcs)'], ['reason','Reason'], ['remarks','Remarks'], ['reworkplan','Rework Plan'], ['qtyrework','Qty Rework'], ['date','Date']
     ],
     cols: [
-      { k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'Versigentpn', l: 'Versigent Part Number' }, { k: 'pn', l: 'Part Number' },
+      { k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'aptivpn', l: 'Versigent Part Number' }, { k: 'pn', l: 'Part Number' }, { k: 'harness', l: 'Harness Name' },
       { k: 'project', l: 'Project' }, { k: 'family', l: 'Family' }, { k: 'qty', l: 'Qty (Pcs)', t: 'num' },
       { k: 'reason', l: 'Reason' }, { k: 'remarks', l: 'Remarks' }, { k: 'qtyrework', l: 'Qty Rework', t: 'num' }
     ],
