@@ -280,7 +280,11 @@
     //     Waktu diisi trigger database (supabase/12-redtag-remarks-terbaru.sql) -> r._ru. Tanpa kolom itu: urut id terbaru.
     const RT_RECENT_MS = 2 * 24 * 60 * 60 * 1000;                          // data terbaru tampil 2 hari, lalu hilang otomatis
     const now = Date.now();
-    const recent = rows.filter(r => { const t = r._ru ? new Date(r._ru).getTime() : NaN; return !isNaN(t) && now - t <= RT_RECENT_MS; });
+    // Hanya data lama yang DIEDIT (Remarks / Qty). Data baru masuk (impor Excel atau input manual) tidak ikut: waktu edit harus lebih baru dari waktu masuk.
+    const recent = rows.filter(r => {
+      const t = r._ru ? new Date(r._ru).getTime() : NaN, c = r._ca ? new Date(r._ca).getTime() : NaN;
+      return !isNaN(t) && now - t <= RT_RECENT_MS && (isNaN(c) || t - c > 5000);
+    });
     const byRemarks = recent.sort((a, b) => (b._ru || '').localeCompare(a._ru || '') || (Number(b._id) || 0) - (Number(a._id) || 0));
     const fmtDT = v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') : '-'; };
     const latestRows = byRemarks.map(r => ({ ...r, _st: rtStatus(r), ru: fmtDT(r._ru) }));
@@ -290,7 +294,7 @@
       { k: 'reworkplan', l: 'Rework Plan' }, { k: 'qtyrework', l: 'Qty Rework', t: 'num' }, { k: '_st', l: 'Status', t: 'badge' }
     ];
     const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
-        <small>${latestRows.length} tag · Qty ${sum(latestRows, 'qty')} pcs · Qty Rework ${sum(latestRows, 'qtyrework')} pcs · hanya input / update Remarks atau Qty dalam 2 hari terakhir (paling atas = terbaru), lalu hilang otomatis</small></div>
+        <small>${latestRows.length} tag · Qty ${sum(latestRows, 'qty')} pcs · Qty Rework ${sum(latestRows, 'qtyrework')} pcs · hanya data lama yang diedit (Remarks / Qty) dalam 2 hari terakhir (paling atas = terbaru), lalu hilang otomatis; data hasil impor tidak masuk</small></div>
       ${latestRows.length ? tblScroll(renderTable({ cols: dayCols }, latestRows)) : '<div class="empty" style="padding:26px 22px">Tidak ada input atau update Remarks dalam 2 hari terakhir.</div>'}</div>`;
 
     // --- 2) Status Red Tag yang sudah di-rework (Close / Rework) ---

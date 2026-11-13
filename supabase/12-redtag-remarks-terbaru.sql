@@ -1,10 +1,9 @@
 -- ============================================================
--- 12-redtag-remarks-terbaru.sql — "Red Tag Terbaru" = input manual baru + update REMARKS / QTY (tampil 2 hari)
+-- 12-redtag-remarks-terbaru.sql — "Red Tag Terbaru" = data lama yang DIEDIT (REMARKS / QTY), tampil 2 hari
 -- Jalankan di Supabase: SQL Editor -> New query -> tempel semua -> Run. Aman diulang.
 --
 -- Kolom remarks_updated_at:
 --   * Upload Excel / data lama  -> KOSONG (tidak masuk Red Tag Terbaru)
---   * Input manual dari form    -> diisi oleh aplikasi saat simpan
 --   * Edit data: REMARKS atau QTY berubah -> diisi waktu sekarang (oleh trigger di bawah)
 --   * Edit kolom lain (tanggal dst) -> tidak berubah
 -- ============================================================

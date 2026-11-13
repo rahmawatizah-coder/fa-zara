@@ -510,6 +510,7 @@
       } finally {
         monthEl.disabled = false; fileEl.disabled = false;
       }
+      if (done) { try { sessionStorage.setItem('qc_last_import_' + cfg.slug, JSON.stringify({ n: done, at: Date.now() })); } catch (e) { /* abaikan */ } }   // Recent Entries menampilkan seluruh baris hasil impor ini
       if (done) { try { window.dispatchEvent(new Event('qc-imported')); } catch (e) { /* abaikan */ } }
       if (done) { try { document.dispatchEvent(new CustomEvent('qc-data-changed')); } catch (e) { /* abaikan */ } }
       if (done && typeof onDone === 'function') { try { onDone(); } catch (e) { console.error(e); } }

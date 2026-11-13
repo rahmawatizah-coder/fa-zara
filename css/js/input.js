@@ -35,6 +35,13 @@
     if (!on) { o.value = ''; o.style.borderColor = ''; }
   });
 
+  if (!document.getElementById('rc-style')) {   // tabel Recent dibatasi tinggi: geser di dalam kotak, halaman tidak memanjang
+    const st = document.createElement('style'); st.id = 'rc-style';
+    st.textContent = `#recent .tbl-scroll{max-height:380px;overflow:auto}
+      #recent thead th{position:sticky;top:0;z-index:2;background:var(--panel);box-shadow:0 1px 0 var(--line)}`;
+    document.head.appendChild(st);
+  }
+
   app.innerHTML = topbar(cfg.name + ' Data Input', { label: 'Lihat Dashboard', href: pageDash(mod) }) + `<div class="page">
     <form class="form-card" id="frm" novalidate>
       <div class="fh"><h3>New ${cfg.name} Entry</h3><span><b>*</b> wajib diisi</span></div>
@@ -47,7 +54,7 @@
         <button type="button" class="btn danger" id="clr">Clear Form</button>
       </div>
     </form>
-    <div class="section-title">Recent Entries (10 terakhir ditambahkan)
+    <div class="section-title"><span id="rc-title">Recent Entries</span>
       ${perm.export ? '<a id="exp">Export Excel</a>' : ''}</div>
     <div class="tbl-card" id="recent"></div>
   </div>`;
@@ -71,7 +78,24 @@
   }
   async function showRecent() {
     $('#recent').innerHTML = '<div class="empty" style="padding:20px">Memuat...</div>';
-    const rows = await loadRecent(mod, 10);
+    // Pilihan jumlah baris (dropdown). Setelah impor Excel tersedia "Hasil impor terakhir" (seluruh baris file yang diimpor).
+    const impKey = 'qc_last_import_' + cfg.slug, viewKey = 'qc_recent_view_' + cfg.slug;
+    let imp = null, view = null;
+    try { imp = JSON.parse(sessionStorage.getItem(impKey) || 'null'); } catch (e) { imp = null; }
+    try { view = sessionStorage.getItem(viewKey); } catch (e) { view = null; }
+    const hasImp = !!(imp && imp.n > 0);
+    if (view === 'import' && !hasImp) view = null;
+    if (!view) view = hasImp ? 'import' : '10';
+    const limit = view === 'import' ? Math.min(imp.n, 20000) : Number(view);
+    const rows = await loadRecent(mod, limit);
+    const ttl = $('#rc-title');
+    if (ttl) {
+      const opt = (v, l) => `<option value="${v}"${view === v ? ' selected' : ''}>${l}</option>`;
+      ttl.innerHTML = 'Recent Entries <select id="rc-sel" class="inp" style="width:auto;display:inline-block;padding:4px 8px;margin-left:10px;font-size:13px">'
+        + opt('10', '10 terakhir') + opt('25', '25 terakhir') + opt('50', '50 terakhir') + opt('100', '100 terakhir')
+        + (hasImp ? opt('import', 'Hasil impor terakhir (' + imp.n.toLocaleString('id-ID') + ' baris)') : '') + '</select>';
+      $('#rc-sel').addEventListener('change', e => { try { sessionStorage.setItem(viewKey, e.target.value); } catch (e2) { /* abaikan */ } showRecent(); });
+    }
     $('#recent').innerHTML = renderTable(cfg, rows, canDelete() ? { del: true, edit: true } : undefined);
 $('#recent').querySelectorAll('button[data-edit]').forEach(b => b.addEventListener('click', async () => {
   const row = rows.find(r => String(r._id) === b.dataset.edit);
@@ -103,6 +127,7 @@ $('#recent').querySelectorAll('button[data-edit]').forEach(b => b.addEventListen
 
   frm.addEventListener('submit', async e => {
     e.preventDefault();
+    try { sessionStorage.removeItem('qc_last_import_' + cfg.slug); sessionStorage.removeItem('qc_recent_view_' + cfg.slug); } catch (e2) { /* abaikan */ }   // input manual: Recent kembali ke 10 terakhir
     const rec = {};
     let bad = null;
 

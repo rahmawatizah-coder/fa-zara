@@ -80,6 +80,7 @@ const fromDb = r => {
   o._id = r.id;                       // id baris, hanya untuk fitur Hapus (tidak ditampilkan / tidak diexport)
   o._ru = r.remarks_updated_at || null;   // waktu REMARKS terakhir diubah (khusus Red Tag; dipakai untuk urutan "Red Tag Terbaru")
   delete o.remarks_updated_at;
+  o._ca = r.created_at || null;           // waktu data pertama masuk (pembeda 'baru masuk' vs 'diedit' di Red Tag Terbaru)
   delete o.id; delete o.created_at;
   return o;
 };
@@ -122,12 +123,7 @@ async function loadRecent(mod, n) {
 // Simpan 1 baris. Mengembalikan error (atau null bila sukses)
 async function insertRow(mod, rec) {
   if (!dbReady()) return { message: 'Supabase belum siap' };
-  // Red Tag: input manual dicatat sebagai "terbaru" (Excel tidak mengirim kolom ini -> tidak masuk Red Tag Terbaru)
-  const payload = mod === 'rt' ? { ...toDb(rec), remarks_updated_at: new Date().toISOString() } : toDb(rec);
-  let { error } = await sb.from(MODULES[mod].slug).insert(payload);
-  if (error && mod === 'rt' && /remarks_updated_at/i.test(error.message || '')) {   // supabase/12 belum dijalankan: simpan tanpa kolom itu
-    ({ error } = await sb.from(MODULES[mod].slug).insert(toDb(rec)));
-  }
+  const { error } = await sb.from(MODULES[mod].slug).insert(toDb(rec));
   return error || null;
 }
 // Nomor berikutnya (SCAR-008, RT-009, ...)
