@@ -210,6 +210,8 @@
     return out;
   }
   /* ---------- RED TAG (format "DAILY RED TAG CHECK") ---------- */
+  // Family Red Tag: buang nomor urut di depan nama ('1. Body' -> 'Body')
+const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
   function parseRedTagSheets(sheetsRows) {
     const out = { rows: [], invalid: [], sheets: [] };
     for (const name of Object.keys(sheetsRows)) {
@@ -235,7 +237,7 @@
         if (!qty) { out.invalid.push({ sheet: name, row: i + 1, reason: 'qty tidak valid' }); continue; }
         if (!pn) { out.invalid.push({ sheet: name, row: i + 1, reason: 'Part Number kosong' }); continue; }
         out.rows.push({
-          date, aptivpn: clean(g(r, 'aptiv part number')), pn, project: clean(g(r, 'project')), family: clean(g(r, 'family')),
+          date, Versigentpn: clean(g(r, 'Versigentpn')), pn, project: clean(g(r, 'project')), family: stripNo(clean(g(r, 'family'))),
           qty, reason: reason || '-', remarks: clean(g(r, 'remarks')), reworkplan: clean(g(r, 'rework plan')),
           qtyrework: Math.max(0, toQty(g(r, 'qty rework')))
         });

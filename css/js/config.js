@@ -159,10 +159,10 @@ charts: [
     fields: [
       { k: 'no',        label: 'Red Tag No.',        type: 'text',   req: 1, def: 'auto' },
       { k: 'date',      label: 'Date',               type: 'date',   req: 1, def: 'today' },
-      { k: 'aptivpn',   label: 'APTIV Part Number',  type: 'text' },
+      { k: 'Versigentpn',   label: 'Versigent Part Number',  type: 'text' },
       { k: 'pn',        label: 'Part Number',        type: 'text',   req: 1 },
       { k: 'project',   label: 'Project',            type: 'select', req: 1, opts: ['VF5','VF5NP','VF6','VF6 RHD','VF7','VF7 RHD','VF8','VF8NP','VF9','VFWild','VFe34','MINI VAN','MHU','MMC'] },
-      { k: 'family',    label: 'Family',             type: 'select', req: 1, opts: ['1. Body','2. IP','3. Front end','4. Under body','5. Tailgate RH','6. Tailgate LH','7. CHMSL','8. Bumper FR','9. Bumper RR','10. Door FR RH','11. Door FR LH','12. Door RR RH','13. Door RR LH','14. Door BK','15. Console','16. Roof','17. SRR Pigtail','18. Impact Sensor','19. RR USB','20. Water Pump','21. HV Battery','22. HV Heater','23. HV Comp','24. Small Battery','MHU Pigtail','SML','HV'] },
+      { k: 'family',    label: 'Family', type: 'select', req: 1, other: 'Other', opts: ['Engine','Body','Small','IP','Other'] },
       { k: 'qty',       label: 'Qty (Pcs)',          type: 'number', req: 1, def: 1 },
       { k: 'reason',    label: 'Reason',             type: 'text',   req: 1 },
       { k: 'remarks',   label: 'Remarks',            type: 'text' },
@@ -172,11 +172,11 @@ charts: [
     xlTitle: 'DAILY RED TAG CHECK',
     xlSheet: 'RED TAG LIST',
     xl: [
-      ['_no','No'], ['aptivpn','APTIV Part Number'], ['pn','Part Number'], ['project','Project'], ['family','Family'],
+      ['_no','No'], ['Versigentpn','Versigent Part Number'], ['pn','Part Number'], ['project','Project'], ['family','Family'],
       ['qty','Qty (Pcs)'], ['reason','Reason'], ['remarks','Remarks'], ['reworkplan','Rework Plan'], ['qtyrework','Qty Rework'], ['date','Date']
     ],
     cols: [
-      { k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'aptivpn', l: 'APTIV Part Number' }, { k: 'pn', l: 'Part Number' },
+      { k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'Versigentpn', l: 'Versigent Part Number' }, { k: 'pn', l: 'Part Number' },
       { k: 'project', l: 'Project' }, { k: 'family', l: 'Family' }, { k: 'qty', l: 'Qty (Pcs)', t: 'num' },
       { k: 'reason', l: 'Reason' }, { k: 'remarks', l: 'Remarks' }, { k: 'qtyrework', l: 'Qty Rework', t: 'num' }
     ],

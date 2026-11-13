@@ -276,17 +276,20 @@
 }
   function rtHTML(rows) {
    // --- 1) Red Tag Terbaru: urut berdasarkan REMARKS yang terakhir diinput/diubah (bukan tanggal) ---
-const byRemarks = rows.slice().sort((a, b) => (b._ru || '').localeCompare(a._ru || '') || (Number(b._id) || 0) - (Number(a._id) || 0));
+const RT_RECENT_MS = 2 * 24 * 60 * 60 * 1000;                          // data terbaru tampil 2 hari, lalu hilang otomatis
+const now = Date.now();
+const recent = rows.filter(r => { const t = r._ru ? new Date(r._ru).getTime() : NaN; return !isNaN(t) && now - t <= RT_RECENT_MS; });
+const byRemarks = recent.sort((a, b) => (b._ru || '').localeCompare(a._ru || '') || (Number(b._id) || 0) - (Number(a._id) || 0));
 const fmtDT = v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') : '-'; };
 const latestRows = byRemarks.map(r => ({ ...r, _st: rtStatus(r), ru: fmtDT(r._ru) }));
 const dayCols = [
-  { k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'aptivpn', l: 'APTIV Part Number' }, { k: 'pn', l: 'Part Number' }, { k: 'project', l: 'Project' },
+  { k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'Versigentpn', l: 'Versigent Part Number' }, { k: 'pn', l: 'Part Number' }, { k: 'project', l: 'Project' },
   { k: 'family', l: 'Family' }, { k: 'qty', l: 'Qty (Pcs)', t: 'num' }, { k: 'reason', l: 'Reason' }, { k: 'remarks', l: 'Remarks' }, { k: 'ru', l: 'Remarks Diperbarui' },
   { k: 'reworkplan', l: 'Rework Plan' }, { k: 'qtyrework', l: 'Qty Rework', t: 'num' }, { k: '_st', l: 'Status', t: 'badge' }
 ];
 const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
-    <small>${latestRows.length} tag · diurutkan dari Remarks yang terakhir diinput / diubah (paling atas = terbaru)</small></div>
-  ${tblScroll(renderTable({ cols: dayCols }, latestRows))}</div>`;
+    <small>${latestRows.length} tag · hanya input / update Remarks dalam 2 hari terakhir (paling atas = terbaru), lalu hilang otomatis</small></div>
+  ${latestRows.length ? tblScroll(renderTable({ cols: dayCols }, latestRows)) : '<div class="empty" style="padding:26px 22px">Tidak ada input atau update Remarks dalam 2 hari terakhir.</div>'}</div>`;
   
     // --- 2) Status Red Tag yang sudah di-rework (Close / Rework) ---
     const grp = { Close: [], Rework: [], Open: [] };

@@ -122,8 +122,12 @@ async function loadRecent(mod, n) {
 // Simpan 1 baris. Mengembalikan error (atau null bila sukses)
 async function insertRow(mod, rec) {
   if (!dbReady()) return { message: 'Supabase belum siap' };
-  const { error } = await sb.from(MODULES[mod].slug).insert(toDb(rec));
-  return error || null;
+  const payload = mod === 'rt' ? { ...toDb(rec), remarks_updated_at: new Date().toISOString() } : toDb(rec);
+let { error } = await sb.from(MODULES[mod].slug).insert(payload);
+if (error && mod === 'rt' && /remarks_updated_at/i.test(error.message || '')) {   // SQL 12 belum dijalankan: simpan tanpa kolom itu
+  ({ error } = await sb.from(MODULES[mod].slug).insert(toDb(rec)));
+}
+return error || null;
 }
 // Nomor berikutnya (SCAR-008, RT-009, ...)
 async function nextNo(mod) {
