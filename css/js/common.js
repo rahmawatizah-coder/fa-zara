@@ -78,9 +78,9 @@ const fromDb = r => {
   const o = { ...r };
   if ('description' in o) { o.desc = o.description; delete o.description; }
   o._id = r.id;                       // id baris, hanya untuk fitur Hapus (tidak ditampilkan / tidak diexport)
-  o._ru = r.remarks_updated_at || null;   // waktu REMARKS terakhir diubah (khusus Red Tag)
-delete o.remarks_updated_at;
-delete o.id; delete o.created_at;
+  o._ru = r.remarks_updated_at || null;   // waktu REMARKS terakhir diubah (khusus Red Tag; dipakai untuk urutan "Red Tag Terbaru")
+  delete o.remarks_updated_at;
+  delete o.id; delete o.created_at;
   return o;
 };
 function dbReady() {
@@ -122,12 +122,13 @@ async function loadRecent(mod, n) {
 // Simpan 1 baris. Mengembalikan error (atau null bila sukses)
 async function insertRow(mod, rec) {
   if (!dbReady()) return { message: 'Supabase belum siap' };
+  // Red Tag: input manual dicatat sebagai "terbaru" (Excel tidak mengirim kolom ini -> tidak masuk Red Tag Terbaru)
   const payload = mod === 'rt' ? { ...toDb(rec), remarks_updated_at: new Date().toISOString() } : toDb(rec);
-let { error } = await sb.from(MODULES[mod].slug).insert(payload);
-if (error && mod === 'rt' && /remarks_updated_at/i.test(error.message || '')) {   // SQL 12 belum dijalankan: simpan tanpa kolom itu
-  ({ error } = await sb.from(MODULES[mod].slug).insert(toDb(rec)));
-}
-return error || null;
+  let { error } = await sb.from(MODULES[mod].slug).insert(payload);
+  if (error && mod === 'rt' && /remarks_updated_at/i.test(error.message || '')) {   // supabase/12 belum dijalankan: simpan tanpa kolom itu
+    ({ error } = await sb.from(MODULES[mod].slug).insert(toDb(rec)));
+  }
+  return error || null;
 }
 // Nomor berikutnya (SCAR-008, RT-009, ...)
 async function nextNo(mod) {
@@ -177,7 +178,7 @@ function topbar(crumb, navBtn) {
   return `<div class="topbar">
     <div class="brand" data-href="${PAGE_MENU}" title="Kembali ke menu"><div class="logo">${shieldSVG}</div>
       <div><div class="t1">FTQ Quality System${crumb ? `<span class="slash">/</span><span class="crumb">${esc(crumb)}</span>` : ''}</div>
-      <div class="t2">QUALITY CONTROL FINAL ASSEMBLY</div></div></div>
+      <div class="t2">QUALITY CONTROL SUITE</div></div></div>
     <div class="right">
       ${crumb ? `<button class="btn" data-href="${PAGE_MENU}">← Menu</button>` : ''}
       ${navBtn ? `<button class="btn" data-href="${navBtn.href}">${navBtn.label}</button>` : ''}
@@ -218,11 +219,37 @@ function renderTable(cfg, rows, opts) {
    Ini satu-satunya tempat di aplikasi yang menghapus baris di database Supabase.
    Izin sebenarnya dijaga database (RLS: policy "admin dan input boleh hapus"),
    pengecekan role di sini hanya lapis tambahan. */
-const canDelete = () => { const u = getUser(); return !!u && (u.role === 'admin' || u.role === 'input'); };
+const canDelete = () => { const u = getUser(); return !!u && (u.role === 'admin' || u.role === 'input'); };   // tombol Hapus/Edit tampil
+// Hapus PERMANEN hanya Engineering (role 'input'). Admin melihat tombolnya, tetapi hanya mendapat peringatan.
+const canPermDelete = () => { const u = getUser(); return !!u && u.role === 'input'; };
+function adminDeleteNotice() {
+  if (!document.getElementById('adn-style')) {
+    const st = document.createElement('style'); st.id = 'adn-style';
+    st.textContent = `.adn-ov{position:fixed;inset:0;background:rgba(31,41,55,.45);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px}
+      .adn-box{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 28px;box-shadow:0 12px 32px rgba(17,24,39,.18)}
+      .adn-box h3{font-size:18px;margin-bottom:12px}.adn-box p{font-size:14px;line-height:1.55;margin-bottom:10px}
+      .adn-warn{background:#FFF6D6;border:1px solid #F0D27A;color:#7A5A00;border-radius:8px;padding:11px 14px;font-size:13px;line-height:1.5;margin-bottom:16px}
+      .adn-act{display:flex;justify-content:flex-end}`;
+    document.head.appendChild(st);
+  }
+  const ov = document.createElement('div');
+  ov.className = 'adn-ov';
+  ov.innerHTML = `<div class="adn-box" role="alertdialog" aria-modal="true"><h3>Hapus permanen tidak bisa dilakukan Admin</h3>
+    <p>Data tidak dihapus.</p>
+    <div class="adn-warn"><b>Perhatian:</b> penghapusan permanen dari database <b>harus dikonfirmasi oleh Engineering</b>. Hubungi Engineering, dan hapus dilakukan dari akun Engineering.</div>
+    <div class="adn-act"><button type="button" class="btn accent">Mengerti</button></div></div>`;
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+  ov.querySelector('button').addEventListener('click', close);
+  document.body.appendChild(ov);
+  ov.querySelector('button').focus();
+}
 
 // Hapus baris berdasarkan id. Mengembalikan { deleted, error }.
 async function deleteRows(mod, ids) {
-  if (!canDelete()) return { deleted: 0, error: { message: 'Role Anda tidak punya izin menghapus data.' } };
+  if (!canPermDelete()) return { deleted: 0, error: { message: 'Hapus permanen hanya bisa dilakukan Engineering. Hubungi Engineering untuk konfirmasi.' } };
   if (!dbReady()) return { deleted: 0, error: { message: 'Supabase belum siap' } };
   const list = [...new Set(ids.filter(i => i != null))];
   let deleted = 0;
@@ -627,7 +654,7 @@ function initMenu() {
   if (!u) return;
   const canInput = PERM[u.role].input;
   $('#app').innerHTML = topbar('', null) + `<div class="page">
-    <h2 class="welcome">Welcome Home and have a great day, ${esc(u.name)}</h2>
+    <h2 class="welcome">Welcome, ${esc(u.name)}</h2>
     <p class="sub">Pilih modul. Setiap modul punya form Data Input dan Dashboard sendiri.</p>
     <div class="cards">${Object.keys(MODULES).map(m => `<div class="mod"><h3>${MODULES[m].name}</h3><p>${MODULES[m].desc}</p>
       <div class="acts">${canInput ? `<button class="btn accent" data-href="${pageInput(m)}">Data Input</button>` : ''}<button class="btn" data-href="${pageDash(m)}">Dashboard</button></div></div>`).join('')}</div></div>`;

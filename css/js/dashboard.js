@@ -73,7 +73,7 @@
     @media(max-width:900px){.t3-grid,.dt-grid,.dt-stats{grid-template-columns:1fr 1fr}}
     @media(max-width:560px){.t3-grid,.dt-grid,.dt-stats{grid-template-columns:1fr}}
     .f-dates{grid-column:1/-1;display:flex;gap:16px;align-items:end;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:14px}
-.f-dates>div:not(.f-quick){min-width:190px}.f-quick{display:flex;gap:8px;flex-wrap:wrap}
+    .f-dates>div:not(.f-quick){min-width:190px}.f-quick{display:flex;gap:8px;flex-wrap:wrap}
     /* Red Tag: terbaru per hari + status rework */
     .rt-sec{margin-bottom:24px}
     .rt-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -86,13 +86,13 @@
     .rt-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px}
     .rt-stat{border:1px solid var(--line);border-radius:12px;padding:16px 20px;background:#fff;box-shadow:0 1px 3px rgba(17,24,39,.07);border-left:6px solid}
     .rt-stat.close{border-left-color:#7BD389;background:#F3FBF5}.rt-stat.rework{border-left-color:#5BB8F0;background:#F1F8FE}.rt-stat.open{border-left-color:#FFC15E;background:#FFF9EE}
-    .rt-stat h5{font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
     button.rt-stat{appearance:none;font:inherit;color:inherit;text-align:left;width:100%;box-sizing:border-box;display:block;cursor:pointer;border-left-width:6px;transition:.15s}
     button.rt-stat.close{border-left-color:#7BD389}button.rt-stat.rework{border-left-color:#5BB8F0}button.rt-stat.open{border-left-color:#FFC15E}
     button.rt-stat:hover,button.rt-stat:focus-visible{transform:translateY(-2px);box-shadow:0 4px 12px rgba(17,24,39,.12)}
     .rt-stat .go{font-size:12px;color:var(--accent-d);margin-top:8px}
     .rt-dsec{border:1px solid var(--line);border-radius:12px;margin-bottom:16px;overflow:hidden}.rt-dsec.hl{border-color:var(--accent);box-shadow:0 0 0 2px var(--soft)}
     .rt-dsec .head{padding:14px 18px;font-weight:700;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rt-dsec .head small{color:var(--muted);font-weight:500}
+    .rt-stat h5{font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
     .rt-stat .big{font-size:28px;font-weight:800;line-height:1}.rt-stat .big small{font-size:12px;font-weight:500;color:var(--muted);margin-left:6px}
     .rt-stat .sub2{display:flex;gap:18px;margin-top:10px;font-size:13px;color:var(--muted)}.rt-stat .sub2 b{color:var(--text)}
     @media(max-width:700px){.rt-stats{grid-template-columns:1fr}}
@@ -244,53 +244,55 @@
   const tblScroll = h => h.replace('class="tbl-scroll"', 'class="tbl-scroll dscroll"');
 
   function showRtDetail(rows, focus) {
-  const grp = { Open: [], Rework: [], Close: [] };
-  rows.forEach(r => grp[rtStatus(r)].push(r));
-  const meta = {
-    Open:   { t: 'Belum Rework',                    note: 'Qty Rework = 0' },
-    Rework: { t: 'Sudah Rework, belum keseluruhan', note: '0 < Qty Rework < Qty' },
-    Close:  { t: 'Close',                           note: 'Qty Rework ≥ Qty' }
-  };
-  const cols = [{ k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'pn', l: 'Part Number' }, { k: 'project', l: 'Project' }, { k: 'family', l: 'Family' },
-    { k: 'reason', l: 'Reason' }, { k: 'qty', l: 'Qty Red Tag', t: 'num' }, { k: 'qrw', l: 'Qty Rework', t: 'num' }, { k: 'sisa', l: 'Sisa', t: 'num' }, { k: 'stt', l: 'Status', t: 'badge' }];
-  const sec = key => {
-    const list = newestFirst(grp[key]).map(r => ({ no: r.no, date: r.date, pn: r.pn, project: r.project, family: r.family, reason: r.reason,
-      qty: rtQ(r), qrw: Math.min(rtW(r), rtQ(r)), sisa: Math.max(0, rtQ(r) - rtW(r)), stt: key }));
-    return `<div class="rt-dsec${key === focus ? ' hl' : ''}" data-sec="${key}"><div class="head">${meta[key].t}<small>${list.length} red tag · ${sum(list, 'qty')} pcs · rework ${sum(list, 'qrw')} pcs · sisa ${sum(list, 'sisa')} pcs · ${meta[key].note}</small></div>${tblScroll(renderTable({ cols }, list))}</div>`;
-  };
-  const ov = document.createElement('div');
-  ov.className = 'cd-overlay';
-  ov.innerHTML = `<div class="dt-box" role="dialog" aria-modal="true">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><h3 style="font-size:22px;margin:0">Detail Status Red Tag</h3>
-      <button type="button" class="btn" data-dt="x" style="margin-left:auto">Tutup ✕</button></div>
-    ${['Open', 'Rework', 'Close'].map(sec).join('')}</div>`;
-  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = e => { if (e.key === 'Escape') close(); };
-  document.addEventListener('keydown', onKey);
-  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
-  ov.querySelector('[data-dt="x"]').addEventListener('click', close);
-  document.body.appendChild(ov);
-  ov.querySelectorAll('.tbl-scroll').forEach(e => e.classList.add('dt-tbl'));
-  enableAllDrag(ov);
-  const hl = ov.querySelector('.rt-dsec.hl'); if (hl) hl.scrollIntoView({ block: 'start' });
-}
+    const grp = { Open: [], Rework: [], Close: [] };
+    rows.forEach(r => grp[rtStatus(r)].push(r));
+    const meta = {
+      Open:   { t: 'Belum Rework',                note: 'Qty Rework = 0' },
+      Rework: { t: 'Sudah Rework, belum keseluruhan', note: '0 < Qty Rework < Qty' },
+      Close:  { t: 'Close',                       note: 'Qty Rework ≥ Qty' }
+    };
+    const cols = [{ k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'pn', l: 'Part Number' }, { k: 'project', l: 'Project' }, { k: 'family', l: 'Family' },
+      { k: 'reason', l: 'Reason' }, { k: 'qty', l: 'Qty Red Tag', t: 'num' }, { k: 'qrw', l: 'Qty Rework', t: 'num' }, { k: 'sisa', l: 'Sisa', t: 'num' }, { k: 'stt', l: 'Status', t: 'badge' }];
+    const sec = key => {
+      const list = newestFirst(grp[key]).map(r => ({ no: r.no, date: r.date, pn: r.pn, project: r.project, family: r.family, reason: r.reason,
+        qty: rtQ(r), qrw: Math.min(rtW(r), rtQ(r)), sisa: Math.max(0, rtQ(r) - rtW(r)), stt: key }));
+      return `<div class="rt-dsec${key === focus ? ' hl' : ''}" data-sec="${key}"><div class="head">${meta[key].t}<small>${list.length} red tag · ${sum(list, 'qty')} pcs · rework ${sum(list, 'qrw')} pcs · sisa ${sum(list, 'sisa')} pcs · ${meta[key].note}</small></div>${tblScroll(renderTable({ cols }, list))}</div>`;
+    };
+    const ov = document.createElement('div');
+    ov.className = 'cd-overlay';
+    ov.innerHTML = `<div class="dt-box" role="dialog" aria-modal="true">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><h3 style="font-size:22px;margin:0">Detail Status Red Tag</h3>
+        <button type="button" class="btn" data-dt="x" style="margin-left:auto">Tutup ✕</button></div>
+      ${['Open', 'Rework', 'Close'].map(sec).join('')}</div>`;
+    const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = e => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+    ov.querySelector('[data-dt="x"]').addEventListener('click', close);
+    document.body.appendChild(ov);
+    ov.querySelectorAll('.tbl-scroll').forEach(e => e.classList.add('dt-tbl'));
+    enableAllDrag(ov);
+    const hl = ov.querySelector('.rt-dsec.hl'); if (hl) hl.scrollIntoView({ block: 'start' });
+  }
+
   function rtHTML(rows) {
-   // --- 1) Red Tag Terbaru: urut berdasarkan REMARKS yang terakhir diinput/diubah (bukan tanggal) ---
-const RT_RECENT_MS = 2 * 24 * 60 * 60 * 1000;                          // data terbaru tampil 2 hari, lalu hilang otomatis
-const now = Date.now();
-const recent = rows.filter(r => { const t = r._ru ? new Date(r._ru).getTime() : NaN; return !isNaN(t) && now - t <= RT_RECENT_MS; });
-const byRemarks = recent.sort((a, b) => (b._ru || '').localeCompare(a._ru || '') || (Number(b._id) || 0) - (Number(a._id) || 0));
-const fmtDT = v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') : '-'; };
-const latestRows = byRemarks.map(r => ({ ...r, _st: rtStatus(r), ru: fmtDT(r._ru) }));
-const dayCols = [
-  { k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'Versigentpn', l: 'Versigent Part Number' }, { k: 'pn', l: 'Part Number' }, { k: 'project', l: 'Project' },
-  { k: 'family', l: 'Family' }, { k: 'qty', l: 'Qty (Pcs)', t: 'num' }, { k: 'reason', l: 'Reason' }, { k: 'remarks', l: 'Remarks' }, { k: 'ru', l: 'Remarks Diperbarui' },
-  { k: 'reworkplan', l: 'Rework Plan' }, { k: 'qtyrework', l: 'Qty Rework', t: 'num' }, { k: '_st', l: 'Status', t: 'badge' }
-];
-const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
-    <small>${latestRows.length} tag · hanya input / update Remarks dalam 2 hari terakhir (paling atas = terbaru), lalu hilang otomatis</small></div>
-  ${latestRows.length ? tblScroll(renderTable({ cols: dayCols }, latestRows)) : '<div class="empty" style="padding:26px 22px">Tidak ada input atau update Remarks dalam 2 hari terakhir.</div>'}</div>`;
-  
+    // --- 1) Red Tag Terbaru: urut berdasarkan REMARKS yang terakhir diinput/diubah (bukan tanggal) ---
+    //     Waktu diisi trigger database (supabase/12-redtag-remarks-terbaru.sql) -> r._ru. Tanpa kolom itu: urut id terbaru.
+    const RT_RECENT_MS = 2 * 24 * 60 * 60 * 1000;                          // data terbaru tampil 2 hari, lalu hilang otomatis
+    const now = Date.now();
+    const recent = rows.filter(r => { const t = r._ru ? new Date(r._ru).getTime() : NaN; return !isNaN(t) && now - t <= RT_RECENT_MS; });
+    const byRemarks = recent.sort((a, b) => (b._ru || '').localeCompare(a._ru || '') || (Number(b._id) || 0) - (Number(a._id) || 0));
+    const fmtDT = v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') : '-'; };
+    const latestRows = byRemarks.map(r => ({ ...r, _st: rtStatus(r), ru: fmtDT(r._ru) }));
+    const dayCols = [
+      { k: 'no', l: 'Red Tag No.' }, { k: 'date', l: 'Date', t: 'date' }, { k: 'aptivpn', l: 'Versigent Part Number' }, { k: 'pn', l: 'Part Number' }, { k: 'harness', l: 'Harness Name' }, { k: 'project', l: 'Project' },
+      { k: 'family', l: 'Family' }, { k: 'qty', l: 'Qty (Pcs)', t: 'num' }, { k: 'reason', l: 'Reason' }, { k: 'remarks', l: 'Remarks' }, { k: 'ru', l: 'Remarks Diperbarui' },
+      { k: 'reworkplan', l: 'Rework Plan' }, { k: 'qtyrework', l: 'Qty Rework', t: 'num' }, { k: '_st', l: 'Status', t: 'badge' }
+    ];
+    const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
+        <small>${latestRows.length} tag · Qty ${sum(latestRows, 'qty')} pcs · Qty Rework ${sum(latestRows, 'qtyrework')} pcs · hanya input / update Remarks atau Qty dalam 2 hari terakhir (paling atas = terbaru), lalu hilang otomatis</small></div>
+      ${latestRows.length ? tblScroll(renderTable({ cols: dayCols }, latestRows)) : '<div class="empty" style="padding:26px 22px">Tidak ada input atau update Remarks dalam 2 hari terakhir.</div>'}</div>`;
+
     // --- 2) Status Red Tag yang sudah di-rework (Close / Rework) ---
     const grp = { Close: [], Rework: [], Open: [] };
     rows.forEach(r => grp[rtStatus(r)].push(r));
@@ -298,12 +300,12 @@ const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
     const wDone = sum(grp.Rework, 'qtyrework'), wLeft = grp.Rework.reduce((a, r) => a + (rtQ(r) - rtW(r)), 0);
     const oQty = sum(grp.Open, 'qty');
     const stats = `<div class="rt-stats">
-    <button type="button" class="rt-stat close" data-rtst="Close" title="Klik untuk melihat detail"><h5>Close</h5><div class="big">${cQty}<small>pcs · ${grp.Close.length} red tag</small></div>
-    <div class="sub2"><span>Qty Close <b>${cQty}</b></span><span>Qty Rework <b>0</b></span></div><div class="go">Klik untuk detail ›</div></button>
-    <button type="button" class="rt-stat rework" data-rtst="Rework" title="Klik untuk melihat detail"><h5>Rework (sebagian)</h5><div class="big">${wDone}<small>pcs · ${grp.Rework.length} red tag</small></div>
-    <div class="sub2"><span>Qty Rework <b>${wDone}</b></span><span>Sisa belum <b>${wLeft}</b></span></div><div class="go">Klik untuk detail ›</div></button>
-    <button type="button" class="rt-stat open" data-rtst="Open" title="Klik untuk melihat detail"><h5>Belum Rework</h5><div class="big">${oQty}<small>pcs · ${grp.Open.length} red tag</small></div>
-    <div class="sub2"><span>Qty Close <b>0</b></span><span>Qty Rework <b>0</b></span></div><div class="go">Klik untuk detail ›</div></button></div>`;
+      <button type="button" class="rt-stat close" data-rtst="Close" title="Klik untuk melihat detail"><h5>Close</h5><div class="big">${cQty}<small>pcs · ${grp.Close.length} red tag</small></div>
+        <div class="sub2"><span>Qty Close <b>${cQty}</b></span><span>Qty Rework <b>0</b></span></div><div class="go">Klik untuk detail ›</div></button>
+      <button type="button" class="rt-stat rework" data-rtst="Rework" title="Klik untuk melihat detail"><h5>Rework (sebagian)</h5><div class="big">${wDone}<small>pcs · ${grp.Rework.length} red tag</small></div>
+        <div class="sub2"><span>Qty Rework <b>${wDone}</b></span><span>Sisa belum <b>${wLeft}</b></span></div><div class="go">Klik untuk detail ›</div></button>
+      <button type="button" class="rt-stat open" data-rtst="Open" title="Klik untuk melihat detail"><h5>Belum Rework</h5><div class="big">${oQty}<small>pcs · ${grp.Open.length} red tag</small></div>
+        <div class="sub2"><span>Qty Close <b>0</b></span><span>Qty Rework <b>0</b></span></div><div class="go">Klik untuk detail ›</div></button></div>`;
     const stRows = newestFirst(grp.Close.concat(grp.Rework)).map(r => {
       const status = rtStatus(r);
       return { no: r.no, date: r.date, pn: r.pn, project: r.project, family: r.family, qty: rtQ(r),
@@ -368,8 +370,8 @@ const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
         <div><label>MONTH</label><select class="inp" data-f="month">${opt(monthOpts, st.month || '')}</select></div>
         ${cfg.filters.map((f, i) => `<div><label>${f.label.toUpperCase()}</label><select class="inp" data-f="${f.k}">${opt(fvals[i], st[f.k] || '')}</select></div>`).join('')}
         <div class="f-dates"><div><label>DARI TANGGAL</label><input type="date" class="inp" data-b="dFrom" value="${esc(st.dFrom || '')}"></div>
-  <div><label>SAMPAI TANGGAL</label><input type="date" class="inp" data-b="dTo" value="${esc(st.dTo || '')}"></div>
-      <div class="f-quick"><button type="button" class="chip" data-dq="today">Hari Ini</button><button type="button" class="chip" data-dq="7">7 Hari</button><button type="button" class="chip" data-dq="30">30 Hari</button><button type="button" class="chip" data-dq="month">Bulan Ini</button><button type="button" class="chip" data-dq="clear">Semua Tanggal</button></div></div>`;
+          <div><label>SAMPAI TANGGAL</label><input type="date" class="inp" data-b="dTo" value="${esc(st.dTo || '')}"></div>
+          <div class="f-quick"><button type="button" class="chip" data-dq="today">Hari Ini</button><button type="button" class="chip" data-dq="7">7 Hari</button><button type="button" class="chip" data-dq="30">30 Hari</button><button type="button" class="chip" data-dq="month">Bulan Ini</button><button type="button" class="chip" data-dq="clear">Semua Tanggal</button></div></div>`;
     const boardYears = [...new Set(all.map(r => r.date.slice(0, 4)))].sort();
     const boardHTML = !board ? '' : `<div class="board">
       <div class="b-row b1">
@@ -410,15 +412,15 @@ const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
 
     bindCommon();
     app.querySelectorAll('[data-dq]').forEach(b => b.addEventListener('click', () => {
-  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  const now = new Date(), q = b.dataset.dq;
-  if (q === 'clear') { delete st.dFrom; delete st.dTo; }
-  else {
-    st.dTo = iso(now);
-    st.dFrom = q === 'today' ? iso(now) : q === 'month' ? iso(new Date(now.getFullYear(), now.getMonth(), 1)) : iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (+q - 1)));
-  }
-  render();
-}));
+      const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const now = new Date(), q = b.dataset.dq;
+      if (q === 'clear') { delete st.dFrom; delete st.dTo; }
+      else {
+        st.dTo = iso(now);
+        st.dFrom = q === 'today' ? iso(now) : q === 'month' ? iso(new Date(now.getFullYear(), now.getMonth(), 1)) : iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (+q - 1)));
+      }
+      render();
+    }));
     app.querySelectorAll('input[data-b]').forEach(i => i.addEventListener('change', () => { st[i.dataset.b] = i.value; render(); }));
     app.querySelectorAll('.chip[data-year]').forEach(b => b.addEventListener('click', () => {
       const y = b.dataset.year, cur = new Set(st.years || []);
@@ -502,6 +504,7 @@ const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
       if (!canDelete()) return;
       const chosen = rows.filter(r => sel.has(String(r._id)));
       if (!chosen.length) return;
+      if (!canPermDelete()) { adminDeleteNotice(); return; }   // Admin: hanya peringatan, harus konfirmasi Engineering
       if (!(await confirmDelete(mod, chosen))) return;
       btn.disabled = true; btn.textContent = 'Menghapus…';
       const { deleted, error } = await deleteRows(mod, chosen.map(r => r._id));
@@ -676,18 +679,19 @@ const latest = `<div class="tbl-card rt-sec"><div class="head">Red Tag Terbaru
     const yLabel = sumKey ? 'Total Qty' : 'Jumlah Data';
 
     // 0) Grafik lingkaran per kategori (chart dengan pie:true di config.js, mis. Defect by Model)
-cfg.charts.forEach((c, ci) => {
-  const el = $('#c-pie-' + ci); if (!el) return;
-  const m = {};
-  rows.forEach(r => { const k = r[c.k]; if (k) m[k] = (m[k] || 0) + (c.sum ? (Number(r[c.sum]) || 0) : 1); });
-  const e = Object.entries(m).sort((a, b) => b[1] - a[1]);
-  gcharts.push(new Chart(el, {
-    type: 'pie', plugins: [valueLabels],
-    data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => x[1]), backgroundColor: e.map((x, i) => pieColor(i)), borderColor: '#ffffff', borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-  }));
-  enableAllDrag(el.closest('.chart'));
-});
+    cfg.charts.forEach((c, ci) => {
+      const el = $('#c-pie-' + ci); if (!el) return;
+      const m = {};
+      rows.forEach(r => { const k = r[c.k]; if (k) m[k] = (m[k] || 0) + (c.sum ? (Number(r[c.sum]) || 0) : 1); });
+      const e = Object.entries(m).sort((a, b) => b[1] - a[1]);
+      gcharts.push(new Chart(el, {
+        type: 'pie', plugins: [valueLabels],
+        data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => x[1]), backgroundColor: e.map((x, i) => pieColor(i)), borderColor: '#ffffff', borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      }));
+      enableAllDrag(el.closest('.chart'));
+    });
+
     // 1) Tren per bulan
     const byMonth = {};
     rows.forEach(r => { const ym = r.date.slice(0, 7); byMonth[ym] = (byMonth[ym] || 0) + val(r); });
