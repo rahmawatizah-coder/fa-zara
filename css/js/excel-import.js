@@ -210,8 +210,8 @@
     return out;
   }
   /* ---------- RED TAG (format "DAILY RED TAG CHECK") ---------- */
-  // Family Red Tag: buang nomor urut di depan nama ('1. Body' -> 'Body')
-const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
+  // Family Red Tag: buang nomor urut di depan nama ('1. Body' -> 'Body', '10. Door FR RH' -> 'Door FR RH')
+  const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
   function parseRedTagSheets(sheetsRows) {
     const out = { rows: [], invalid: [], sheets: [] };
     for (const name of Object.keys(sheetsRows)) {
@@ -237,7 +237,7 @@ const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
         if (!qty) { out.invalid.push({ sheet: name, row: i + 1, reason: 'qty tidak valid' }); continue; }
         if (!pn) { out.invalid.push({ sheet: name, row: i + 1, reason: 'Part Number kosong' }); continue; }
         out.rows.push({
-          date, Versigentpn: clean(g(r, 'Versigentpn')), pn, project: clean(g(r, 'project')), family: stripNo(clean(g(r, 'family'))),
+          date, aptivpn: clean(g(r, 'versigent part number')) || clean(g(r, 'aptiv part number')), pn, harness: clean(g(r, 'harness name')) || clean(g(r, 'description')), project: clean(g(r, 'project')), family: stripNo(clean(g(r, 'family'))),
           qty, reason: reason || '-', remarks: clean(g(r, 'remarks')), reworkplan: clean(g(r, 'rework plan')),
           qtyrework: Math.max(0, toQty(g(r, 'qty rework')))
         });
@@ -273,7 +273,9 @@ const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
   }
   const monthLabel = ym => BULAN[+ym.slice(5, 7) - 1] + ' ' + ym.slice(0, 4);
 
-  const keyOf = r => [r.date, r.model, r.family, r.pn, r.shift, r.problem, r.desc, r.area, r.qty].join('\u0001');
+  // Normalisasi pembanding duplikat: spasi ganda/ujung & huruf besar-kecil diabaikan, angka dibandingkan sebagai angka
+  const norm = v => String(v ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const keyOf = r => [norm(r.date).slice(0, 10), norm(r.model), norm(r.family), norm(r.pn), norm(r.shift), norm(r.problem), norm(r.desc), norm(r.area), Number(r.qty) || 0].join('\u0001');
 
   // FTQ: dicocokkan dengan jumlah kemunculan (dua baris identik di Excel tetap masuk keduanya, sekali saja)
   function splitNewExisting(rows, existingRows) {
@@ -286,7 +288,7 @@ const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
     });
     return { fresh, already };
   }
-    const rtKey = r => [r.date, r.pn, r.reason, r.qty].join('\u0001');
+  const rtKey = r => [norm(r.date).slice(0, 10), norm(r.pn), norm(r.reason), Number(r.qty) || 0].join('\u0001');
   function splitRedTag(rows, existingRows, existingNos, prefix) {
     const cnt = new Map();
     existingRows.forEach(e => { const k = rtKey(e); cnt.set(k, (cnt.get(k) || 0) + 1); });
@@ -300,13 +302,18 @@ const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
     return { fresh, already };
   }
   // SCAR / Red Tag: dicocokkan lewat nomor. Baris tanpa nomor diberi nomor berikutnya.
-  function splitByNo(rows, existingNos, prefix) {
+  function splitByNo(rows, existingNos, prefix, existingRows, keys) {
     const have = new Set(existingNos);
+    // Isi baris dibandingkan juga (tanpa nomor/status), supaya file yang sama tidak masuk lagi walau nomornya kosong/beda
+    const ck = r => (keys || []).map(k => norm(r[k])).join('\u0001');
+    const cnt = new Map();
+    (existingRows || []).forEach(e => { const k = ck(e); cnt.set(k, (cnt.get(k) || 0) + 1); });
     let max = 0;
     existingNos.concat(rows.map(r => r.no)).forEach(n => { max = Math.max(max, parseInt(String(n || '').replace(/\D/g, ''), 10) || 0); });
     const fresh = [], already = [];
     rows.forEach(r => {
       if (r.no && have.has(r.no)) { already.push(r); return; }
+      if (keys && keys.length) { const k = ck(r), c = cnt.get(k) || 0; if (c > 0) { cnt.set(k, c - 1); already.push(r); return; } }
       fresh.push(r.no ? r : Object.assign({}, r, { no: prefix + String(++max).padStart(3, '0') }));
     });
     return { fresh, already };
@@ -368,6 +375,17 @@ const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
       const { data, error } = await sb.from(cfg.slug).select(cfg.idKey).order('id', { ascending: true }).range(from, from + size - 1);
       if (error) throw error;
       out.push(...data.map(r => r[cfg.idKey]));
+      if (data.length < size) break;
+    }
+    return out;
+  }
+  // Semua baris di database (untuk membandingkan isi, dipakai SCAR)
+  async function fetchAllRows(cfg) {
+    const out = [], size = 1000;
+    for (let from = 0; ; from += size) {
+      const { data, error } = await sb.from(cfg.slug).select('*').order('id', { ascending: true }).range(from, from + size - 1);
+      if (error) throw error;
+      out.push(...data.map(fromDb));
       if (data.length < size) break;
     }
     return out;
@@ -447,7 +465,8 @@ const stripNo = v => String(v ?? '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').trim();
           const dates = rows.map(r => r.date).sort();
           split = splitRedTag(rows, await fetchRtExisting(dates[0], dates[dates.length - 1]), await fetchAllNos(cfg), cfg.prefix || '');
         } else {
-          split = splitByNo(rows, await fetchAllNos(cfg), cfg.prefix || '');
+          const keys = (cfg.fields || []).map(f => f.k).filter(k => k !== 'no' && k !== 'status' && k !== cfg.idKey);
+          split = splitByNo(rows, await fetchAllNos(cfg), cfg.prefix || '', await fetchAllRows(cfg), keys);
         }
       } catch (e) {
         if (my === token) setStatus('Gagal memeriksa database: ' + (e.message || e), 'bad');
