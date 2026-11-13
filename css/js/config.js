@@ -161,7 +161,7 @@ charts: [
       { k: 'date',      label: 'Date',               type: 'date',   req: 1, def: 'today' },
       { k: 'Versigentpn',   label: 'Versigent Part Number',  type: 'text' },
       { k: 'pn',        label: 'Part Number',        type: 'text',   req: 1 },
-      { k: 'project',   label: 'Project',            type: 'select', req: 1, opts: ['VF5','VF5NP','VF6','VF6 RHD','VF7','VF7 RHD','VF8','VF8NP','VF9','VFWild','VFe34','MINI VAN','MHU','MMC'] },
+      { k: 'project',   label: 'Project', type: 'select', req: 1, other: 'Other', opts: ['VF5','VF5NP','VF6','VF6 RHD','VF7','VF7 RHD','VF8','VF8NP','VF9','VFWild','VF9NP','MINIVAN','Other'] },
       { k: 'family',    label: 'Family', type: 'select', req: 1, other: 'Other', opts: ['Engine','Body','Small','IP','Other'] },
       { k: 'qty',       label: 'Qty (Pcs)',          type: 'number', req: 1, def: 1 },
       { k: 'reason',    label: 'Reason',             type: 'text',   req: 1 },
